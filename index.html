@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPTV / M3U8 播放器</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            padding: 20px;
+            transition: background-color 0.3s ease;
+            color: #333;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+            color: inherit;
+        }
+
+        .input-section {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        #urlInput {
+            flex: 1;
+            max-width: 600px;
+            min-width: 280px;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #urlInput:focus {
+            border-color: #4CAF50;
+        }
+
+        #playBtn {
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #playBtn:hover {
+            background-color: #45a049;
+        }
+
+        .color-section {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .color-label {
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .color-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .color-btn {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #333;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .color-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .video-section {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #videoPlayer {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            background-color: #000;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            margin: 0 auto;
+            display: block;
+        }
+
+        .progress-section {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #progressBar {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .controls-section {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+        }
+
+        .control-btn {
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            background-color: #2196F3;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            margin: 5px;
+        }
+
+        .control-btn:hover {
+            background-color: #1976D2;
+            transform: translateY(-2px);
+        }
+
+        .control-btn.pause {
+            background-color: #FF9800;
+        }
+
+        .control-btn.pause:hover {
+            background-color: #F57C00;
+        }
+
+        .control-btn.refresh {
+            background-color: #9C27B0;
+        }
+
+        .control-btn.refresh:hover {
+            background-color: #7B1FA2;
+        }
+
+        .jump-inputs {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .jump-input {
+            padding: 10px;
+            font-size: 14px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            width: 60px;
+            text-align: center;
+            outline: none;
+        }
+
+        .jump-input:focus {
+            border-color: #2196F3;
+        }
+
+        .jump-label {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        #scaleInput {
+            padding: 10px 12px;
+            font-size: 14px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            width: 100px;
+            text-align: center;
+            outline: none;
+        }
+
+        #scaleInput:focus {
+            border-color: #2196F3;
+        }
+
+        .fast-controls, .rewind-controls, .speed-controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .fast-btn, .rewind-btn, .speed-btn {
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            min-width: 70px;
+            margin: 5px;
+        }
+
+        .fast-btn {
+            background-color: #4CAF50;
+        }
+
+        .fast-btn:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .rewind-btn {
+            background-color: #f44336;
+        }
+
+        .rewind-btn:hover {
+            background-color: #d32f2f;
+            transform: translateY(-2px);
+        }
+
+        .speed-btn {
+            background-color: #607D8B;
+        }
+
+        .speed-btn:hover {
+            background-color: #455A64;
+            transform: translateY(-2px);
+        }
+
+        .speed-btn.active {
+            background-color: #FF5722;
+            box-shadow: 0 0 10px rgba(255, 87, 34, 0.5);
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 15px;
+            margin: 15px auto;
+            border-radius: 6px;
+            font-weight: bold;
+            display: none;
+            max-width: 600px;
+        }
+
+        .status-message.info {
+            background-color: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #90caf9;
+        }
+
+        .status-message.error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef5350;
+        }
+
+        .status-message.success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #81c784;
+        }
+
+        .section-label {
+            font-weight: bold;
+            margin-bottom: 12px;
+            display: block;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            #urlInput {
+                max-width: 100%;
+                min-width: auto;
+            }
+
+            .control-btn, .fast-btn, .rewind-btn, .speed-btn {
+                font-size: 12px;
+                padding: 10px 14px;
+                min-width: 60px;
+                margin: 4px;
+            }
+
+            .jump-input {
+                width: 50px;
+            }
+
+            .control-group {
+                gap: 10px;
+            }
+
+            .fast-controls, .rewind-controls, .speed-controls {
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body style="background-color: #ffffff;">
+    <div class="container">
+        <h1>🎬 IPTV / M3U8 播放器</h1>
+
+        <!-- URL 输入区 -->
+        <div class="input-section">
+            <div class="input-group">
+                <input type="text" id="urlInput" placeholder="输入 M3U8/IPTV/音频/视频 地址">
+                <button id="playBtn" onclick="loadVideo()">播放</button>
+            </div>
+            <div id="statusMessage" class="status-message"></div>
+        </div>
+
+        <!-- 颜色选择区 -->
+        <div class="color-section">
+            <label class="color-label">背景颜色：</label>
+            <div class="color-buttons">
+                <button class="color-btn" style="background-color: #ffffff;" onclick="changeBgColor('#ffffff')"></button>
+                <button class="color-btn" style="background-color: #000000;" onclick="changeBgColor('#000000')"></button>
+                <button class="color-btn" style="background-color: #808080;" onclick="changeBgColor('#808080')"></button>
+                <button class="color-btn" style="background-color: #00008B;" onclick="changeBgColor('#00008B')"></button>
+                <button class="color-btn" style="background-color: #F5F5DC;" onclick="changeBgColor('#F5F5DC')"></button>
+                <button class="color-btn" style="background-color: #0000FF;" onclick="changeBgColor('#0000FF')"></button>
+                <button class="color-btn" style="background-color: #008000;" onclick="changeBgColor('#008000')"></button>
+                <button class="color-btn" style="background-color: #FF0000;" onclick="changeBgColor('#FF0000')"></button>
+            </div>
+        </div>
+
+        <!-- 视频播放区 -->
+        <div class="video-section">
+            <video id="videoPlayer" controls></video>
+        </div>
+
+        <!-- 进度条区 -->
+        <div class="progress-section">
+            <input type="range" id="progressBar" min="0" max="100" value="0" step="0.1" oninput="seekVideo()">
+            <div class="time-display">
+                <span id="currentTime">00:00:00</span>
+                <span id="duration">00:00:00</span>
+            </div>
+        </div>
+
+        <!-- 基础控制区 -->
+        <div class="controls-section">
+            <div class="control-group">
+                <button class="control-btn pause" onclick="togglePause()">⏸️ 暂停</button>
+                <button class="control-btn refresh" onclick="refreshVideo()">🔄 刷新</button>
+                
+                <!-- 跳转输入 -->
+                <div class="control-item">
+                    <span>跳转：</span>
+                    <div class="jump-inputs">
+                        <input type="number" class="jump-input" id="jumpH" placeholder="0" min="0">
+                        <span class="jump-label">h</span>
+                        <input type="number" class="jump-input" id="jumpM" placeholder="0" min="0">
+                        <span class="jump-label">min</span>
+                        <input type="number" class="jump-input" id="jumpS" placeholder="0" min="0">
+                        <span class="jump-label">s</span>
+                    </div>
+                    <button class="control-btn" onclick="jumpToTime()">跳转</button>
+                </div>
+                
+                <!-- 页面缩放 -->
+                <div class="control-item">
+                    <span>缩放：</span>
+                    <input type="number" id="scaleInput" placeholder="100" min="0" max="100" step="0.1">
+                    <span class="jump-label">%</span>
+                    <button class="control-btn" onclick="applyScale()">缩放</button>
+                </div>
+            </div>
+
+            <!-- 快进控制 -->
+            <label class="section-label">快进：</label>
+            <div class="fast-controls">
+                <button class="fast-btn" onclick="fastForward(5)">+5s</button>
+                <button class="fast-btn" onclick="fastForward(10)">+10s</button>
+                <button class="fast-btn" onclick="fastForward(15)">+15s</button>
+                <button class="fast-btn" onclick="fastForward(20)">+20s</button>
+                <button class="fast-btn" onclick="fastForward(30)">+30s</button>
+                <button class="fast-btn" onclick="fastForward(60)">+1min</button>
+                <button class="fast-btn" onclick="fastForward(300)">+5min</button>
+            </div>
+
+            <!-- 倒退控制 -->
+            <label class="section-label">倒退：</label>
+            <div class="rewind-controls">
+                <button class="rewind-btn" onclick="rewind(5)">-5s</button>
+                <button class="rewind-btn" onclick="rewind(10)">-10s</button>
+                <button class="rewind-btn" onclick="rewind(15)">-15s</button>
+                <button class="rewind-btn" onclick="rewind(20)">-20s</button>
+                <button class="rewind-btn" onclick="rewind(30)">-30s</button>
+                <button class="rewind-btn" onclick="rewind(60)">-1min</button>
+                <button class="rewind-btn" onclick="rewind(300)">-5min</button>
+            </div>
+
+            <!-- 倍速控制 -->
+            <label class="section-label">倍速：</label>
+            <div class="speed-controls">
+                <button class="speed-btn" onclick="setSpeed(0.25, this)">0.25x</button>
+                <button class="speed-btn" onclick="setSpeed(0.5, this)">0.5x</button>
+                <button class="speed-btn" onclick="setSpeed(0.75, this)">0.75x</button>
+                <button class="speed-btn active" onclick="setSpeed(1.0, this)">1.0x</button>
+                <button class="speed-btn" onclick="setSpeed(1.25, this)">1.25x</button>
+                <button class="speed-btn" onclick="setSpeed(1.5, this)">1.5x</button>
+                <button class="speed-btn" onclick="setSpeed(1.75, this)">1.75x</button>
+                <button class="speed-btn" onclick="setSpeed(2.0, this)">2.0x</button>
+                <button class="speed-btn" onclick="setSpeed(2.5, this)">2.5x</button>
+                <button class="speed-btn" onclick="setSpeed(3.0, this)">3.0x</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let video = document.getElementById('videoPlayer');
+        let progressBar = document.getElementById('progressBar');
+        let currentTimeDisplay = document.getElementById('currentTime');
+        let durationDisplay = document.getElementById('duration');
+        let hls = null;
+        let currentSpeed = 1.0;
+
+        // 格式化时间显示
+        function formatTime(seconds) {
+            if (isNaN(seconds) || !isFinite(seconds)) return '00:00:00';
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        // 显示状态消息
+        function showMessage(text, type = 'info') {
+            const msgDiv = document.getElementById('statusMessage');
+            msgDiv.textContent = text;
+            msgDiv.className = `status-message ${type}`;
+            msgDiv.style.display = 'block';
+            if (type === 'success') {
+                setTimeout(() => {
+                    msgDiv.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // 检测媒体类型
+        function detectMediaType(url) {
+            const lowerUrl = url.toLowerCase();
+            if (lowerUrl.includes('.m3u8') || lowerUrl.includes('m3u8')) {
+                return 'hls';
+            } else if (lowerUrl.match(/\.(mp4|webm|ogg|mov)(\?|$)/i)) {
+                return 'video';
+            } else if (lowerUrl.match(/\.(mp3|wav|aac|flac|ogg)(\?|$)/i)) {
+                return 'audio';
+            } else if (lowerUrl.includes('rtmp://') || lowerUrl.includes('rtsp://')) {
+                return 'stream';
+            } else {
+                return 'unknown';
+            }
+        }
+
+        // 加载视频/音频
+        function loadVideo() {
+            const url = document.getElementById('urlInput').value.trim();
+            if (!url) {
+                showMessage('请输入媒体地址', 'error');
+                return;
+            }
+
+            // 清理之前的 HLS 实例
+            if (hls) {
+                hls.destroy();
+                hls = null;
+            }
+
+            showMessage('正在加载媒体...', 'info');
+
+            const mediaType = detectMediaType(url);
+
+            // 优先尝试 HLS.js
+            if (mediaType === 'hls' || url.includes('.m3u8')) {
+                if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    // Safari 原生支持
+                    video.src = url;
+                    video.addEventListener('loadedmetadata', () => {
+                        showMessage('媒体加载成功', 'success');
+                        video.playbackRate = currentSpeed;
+                        video.play().catch(e => console.log('自动播放被阻止:', e));
+                    });
+                    video.addEventListener('error', (e) => {
+                        tryDirectPlay(url);
+                    });
+                } else if (Hls.isSupported()) {
+                    hls = new Hls({
+                        debug: false,
+                        enableWorker: true,
+                        lowLatencyMode: true,
+                        backBufferLength: 90
+                    });
+                    
+                    hls.loadSource(url);
+                    hls.attachMedia(video);
+                    
+                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        showMessage('媒体加载成功', 'success');
+                        video.playbackRate = currentSpeed;
+                        video.play().catch(e => console.log('自动播放被阻止:', e));
+                    });
+                    
+                    hls.on(Hls.Events.ERROR, (event, data) => {
+                        console.error('HLS 错误:', data);
+                        if (data.fatal) {
+                            switch(data.type) {
+                                case Hls.ErrorTypes.NETWORK_ERROR:
+                                    showMessage('网络错误，正在重试...', 'error');
+                                    setTimeout(() => hls.startLoad(), 3000);
+                                    break;
+                                case Hls.ErrorTypes.MEDIA_ERROR:
+                                    showMessage('媒体错误，正在恢复...', 'error');
+                                    hls.recoverMediaError();
+                                    break;
+                                default:
+                                    showMessage('HLS 加载失败，尝试直接播放...', 'error');
+                                    tryDirectPlay(url);
+                                    break;
+                            }
+                        }
+                    });
+                } else {
+                    tryDirectPlay(url);
+                }
+            } else {
+                tryDirectPlay(url);
+            }
+        }
+
+        // 直接播放（适用于非 HLS 格式）
+        function tryDirectPlay(url) {
+            video.src = url;
+            video.load();
+            
+            video.addEventListener('loadedmetadata', () => {
+                showMessage('媒体加载成功', 'success');
+                video.playbackRate = currentSpeed;
+                video.play().catch(e => {
+                    console.log('自动播放被阻止:', e);
+                    showMessage('媒体已加载，请点击播放按钮', 'info');
+                });
+            }, { once: true });
+            
+            video.addEventListener('error', (e) => {
+                const error = video.error;
+                if (error) {
+                    switch(error.code) {
+                        case MediaError.MEDIA_ERR_ABORTED:
+                            showMessage('播放被中止', 'error');
+                            break;
+                        case MediaError.MEDIA_ERR_NETWORK:
+                            showMessage('网络错误，请检查地址是否有效', 'error');
+                            break;
+                        case MediaError.MEDIA_ERR_DECODE:
+                            showMessage('解码错误，该格式可能不被支持', 'error');
+                            break;
+                        case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                            showMessage('不支持的媒体格式', 'error');
+                            break;
+                        default:
+                            showMessage('播放失败，请检查地址是否有效', 'error');
+                    }
+                }
+            }, { once: true });
+        }
+
+        // 更改背景颜色
+        function changeBgColor(color) {
+            document.body.style.backgroundColor = color;
+            const brightness = getBrightness(color);
+            document.body.style.color = brightness > 125 ? '#333' : '#fff';
+        }
+
+        // 计算颜色亮度
+        function getBrightness(hexColor) {
+            const rgb = parseInt(hexColor.slice(1), 16);
+            const r = (rgb >> 16) & 0xff;
+            const g = (rgb >>  8) & 0xff;
+            const b = (rgb >>  0) & 0xff;
+            return (r * 299 + g * 587 + b * 114) / 1000;
+        }
+
+        // 切换暂停/播放
+        function togglePause() {
+            const btn = event.target;
+            if (video.paused) {
+                video.play();
+                btn.innerHTML = '⏸️ 暂停';
+            } else {
+                video.pause();
+                btn.innerHTML = '▶️ 播放';
+            }
+        }
+
+        // 刷新视频
+        function refreshVideo() {
+            const url = document.getElementById('urlInput').value.trim();
+            if (url) {
+                loadVideo();
+            } else {
+                video.load();
+            }
+        }
+
+        // 跳转到指定时间
+        function jumpToTime() {
+            const h = parseInt(document.getElementById('jumpH').value) || 0;
+            const m = parseInt(document.getElementById('jumpM').value) || 0;
+            const s = parseInt(document.getElementById('jumpS').value) || 0;
+            
+            const totalSeconds = h * 3600 + m * 60 + s;
+
+            if (video.duration && !isNaN(video.duration)) {
+                if (totalSeconds >= 0 && totalSeconds <= video.duration) {
+                    video.currentTime = totalSeconds;
+                    showMessage(`已跳转到 ${formatTime(totalSeconds)}`, 'success');
+                } else if (totalSeconds > video.duration) {
+                    showMessage('跳转时间超出媒体范围', 'error');
+                } else {
+                    showMessage('请先加载媒体', 'error');
+                }
+            } else {
+                showMessage('请先加载媒体', 'error');
+            }
+        }
+
+        // 应用页面缩放
+        function applyScale() {
+            const scaleValue = parseFloat(document.getElementById('scaleInput').value);
+            if (isNaN(scaleValue) || scaleValue < 0 || scaleValue > 100) {
+                showMessage('请输入 0-100 之间的数值', 'error');
+                return;
+            }
+
+            const scale = scaleValue / 100;
+            const videoSection = document.querySelector('.video-section');
+            videoSection.style.transform = `scale(${scale})`;
+            videoSection.style.transformOrigin = 'center top';
+            
+            const originalHeight = videoSection.offsetHeight;
+            const scaledHeight = originalHeight * scale;
+            videoSection.style.marginBottom = `-${originalHeight - scaledHeight}px`;
+            
+            showMessage(`页面缩放至 ${scaleValue}%`, 'success');
+        }
+
+        // 快进
+        function fastForward(seconds) {
+            if (video.duration && !isNaN(video.duration)) {
+                video.currentTime = Math.min(video.currentTime + seconds, video.duration);
+            } else {
+                video.currentTime += seconds;
+            }
+        }
+
+        // 倒退
+        function rewind(seconds) {
+            video.currentTime = Math.max(video.currentTime - seconds, 0);
+        }
+
+        // 设置播放速度 - 修复版本
+        function setSpeed(speed, btn) {
+            // 保存当前速度
+            currentSpeed = speed;
+            
+            // 立即设置视频播放速度
+            if (video) {
+                video.playbackRate = speed;
+                
+                // 强制刷新，确保在某些浏览器上生效
+                setTimeout(() => {
+                    video.playbackRate = speed;
+                }, 10);
+            }
+            
+            // 更新按钮状态
+            document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            showMessage(`播放速度：${speed}x`, 'success');
+        }
+
+        // 拖动进度条
+        function seekVideo() {
+            if (video.duration && !isNaN(video.duration)) {
+                const time = video.duration * (progressBar.value / 100);
+                video.currentTime = time;
+            }
+        }
+
+        // 更新进度条
+        video.addEventListener('timeupdate', () => {
+            if (video.duration && !isNaN(video.duration)) {
+                const progress = (video.currentTime / video.duration) * 100;
+                progressBar.value = progress;
+                currentTimeDisplay.textContent = formatTime(video.currentTime);
+                durationDisplay.textContent = formatTime(video.duration);
+            }
+        });
+
+        // 视频加载元数据
+        video.addEventListener('loadedmetadata', () => {
+            if (video.duration && !isNaN(video.duration)) {
+                durationDisplay.textContent = formatTime(video.duration);
+                // 确保播放速度被应用
+                video.playbackRate = currentSpeed;
+            }
+        });
+
+        // 视频播放时更新按钮
+        video.addEventListener('play', () => {
+            const btn = document.querySelector('.control-btn.pause');
+            btn.innerHTML = '⏸️ 暂停';
+            // 确保播放速度正确
+            video.playbackRate = currentSpeed;
+        });
+
+        video.addEventListener('pause', () => {
+            const btn = document.querySelector('.control-btn.pause');
+            btn.innerHTML = '▶️ 播放';
+        });
+
+        // 回车键触发播放
+        document.getElementById('urlInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loadVideo();
+            }
+        });
+
+        // 回车键触发跳转
+        document.getElementById('jumpH').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') jumpToTime();
+        });
+        document.getElementById('jumpM').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') jumpToTime();
+        });
+        document.getElementById('jumpS').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') jumpToTime();
+        });
+
+        // 回车键触发缩放
+        document.getElementById('scaleInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') applyScale();
+        });
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', () => {
+            // 确保初始速度正确
+            if (video) {
+                video.playbackRate = currentSpeed;
+            }
+        });
+    </script>
+</body>
+</html>

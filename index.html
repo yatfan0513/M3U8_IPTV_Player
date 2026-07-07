@@ -2,828 +2,999 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IPTV / M3U8 播放器</title>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>全能媒体播放器</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            padding: 20px;
-            transition: background-color 0.3s ease;
-            color: #333;
+            padding: 15px; transition: background-color 0.3s; color: #333;
         }
+        .container { max-width: 100%; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 20px; font-size: 24px; color: inherit; }
 
-        .container {
-            max-width: 100%;
-            margin: 0 auto;
-        }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 28px;
-            color: inherit;
-        }
-
-        .input-section {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
+        .input-section { margin-bottom: 15px; text-align: center; }
         .input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            justify-content: center;
-            align-items: center;
-            flex-wrap: wrap;
+            display: flex; gap: 8px; margin-bottom: 10px;
+            justify-content: center; align-items: center; flex-wrap: wrap;
         }
-
         #urlInput {
-            flex: 1;
-            max-width: 600px;
-            min-width: 280px;
-            padding: 12px;
-            font-size: 16px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            outline: none;
-            transition: border-color 0.3s;
+            flex: 1; max-width: 600px; min-width: 260px;
+            padding: 11px; font-size: 16px;
+            border: 2px solid #ddd; border-radius: 6px; outline: none;
         }
+        #urlInput:focus { border-color: #4CAF50; }
+        .action-btn {
+            padding: 11px 20px; font-size: 16px; font-weight: bold;
+            color: #fff; border: none; border-radius: 6px; cursor: pointer; margin: 4px;
+        }
+        .play-btn { background: #4CAF50; }
+        .play-btn:hover { background: #45a049; }
+        .parse-btn { background: #FF9800; }
+        .parse-btn:hover { background: #F57C00; }
+        .sniff-btn { background: #E91E63; }
+        .sniff-btn:hover { background: #C2185B; }
+        .check-btn { background: #2196F3; }
+        .check-btn:hover { background: #1976D2; }
+        .filter-btn { background: #9C27B0; font-size: 13px !important; padding: 8px 14px !important; }
+        .filter-btn:hover { background: #7B1FA2; }
+        .filter-btn.active { background: #E91E63; }
 
-        #urlInput:focus {
-            border-color: #4CAF50;
+        .channel-list {
+            display: none; max-height: 400px; overflow-y: auto;
+            margin: 10px auto; border: 2px solid #ddd; border-radius: 6px;
+            background: rgba(255,255,255,0.95); text-align: left;
         }
-
-        #playBtn {
-            padding: 12px 30px;
-            font-size: 16px;
-            font-weight: bold;
-            color: white;
-            background-color: #4CAF50;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.3s;
+        .channel-toolbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 14px; background: #f5f5f5; border-bottom: 1px solid #ddd;
+            flex-wrap: wrap; gap: 8px;
         }
-
-        #playBtn:hover {
-            background-color: #45a049;
+        .channel-stats { font-size: 13px; color: #666; }
+        .channel-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+        .channel-item {
+            padding: 10px 14px; border-bottom: 1px solid #eee;
+            cursor: pointer; font-size: 14px; transition: background 0.2s;
+            display: flex; align-items: center; gap: 10px;
         }
-
-        .color-section {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .color-label {
-            font-weight: bold;
-            margin-bottom: 10px;
-            display: block;
-        }
-
-        .color-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .color-btn {
-            width: 50px;
-            height: 50px;
-            border: 3px solid #333;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .color-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-        }
-
-        .video-section {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        #videoPlayer {
-            width: 100%;
-            max-width: 100%;
-            height: auto;
-            background-color: #000;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            margin: 0 auto;
-            display: block;
-        }
-
-        .progress-section {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        #progressBar {
-            width: 100%;
-            height: 8px;
-            border-radius: 4px;
-            outline: none;
-            cursor: pointer;
-        }
-
-        .time-display {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 8px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .controls-section {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .control-group {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .control-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: bold;
-        }
-
-        .control-btn {
-            padding: 12px 24px;
-            font-size: 14px;
-            font-weight: bold;
-            color: white;
-            background-color: #2196F3;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
-            margin: 5px;
-        }
-
-        .control-btn:hover {
-            background-color: #1976D2;
-            transform: translateY(-2px);
-        }
-
-        .control-btn.pause {
-            background-color: #FF9800;
-        }
-
-        .control-btn.pause:hover {
-            background-color: #F57C00;
-        }
-
-        .control-btn.refresh {
-            background-color: #9C27B0;
-        }
-
-        .control-btn.refresh:hover {
-            background-color: #7B1FA2;
-        }
-
-        .jump-inputs {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .jump-input {
-            padding: 10px;
-            font-size: 14px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            width: 60px;
-            text-align: center;
-            outline: none;
-        }
-
-        .jump-input:focus {
-            border-color: #2196F3;
-        }
-
-        .jump-label {
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        #scaleInput {
-            padding: 10px 12px;
-            font-size: 14px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            width: 100px;
-            text-align: center;
-            outline: none;
-        }
-
-        #scaleInput:focus {
-            border-color: #2196F3;
-        }
-
-        .fast-controls, .rewind-controls, .speed-controls {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-            justify-content: center;
-        }
-
-        .fast-btn, .rewind-btn, .speed-btn {
-            padding: 12px 20px;
-            font-size: 14px;
-            font-weight: bold;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
-            min-width: 70px;
-            margin: 5px;
-        }
-
-        .fast-btn {
-            background-color: #4CAF50;
-        }
-
-        .fast-btn:hover {
-            background-color: #45a049;
-            transform: translateY(-2px);
-        }
-
-        .rewind-btn {
-            background-color: #f44336;
-        }
-
-        .rewind-btn:hover {
-            background-color: #d32f2f;
-            transform: translateY(-2px);
-        }
-
-        .speed-btn {
-            background-color: #607D8B;
-        }
-
-        .speed-btn:hover {
-            background-color: #455A64;
-            transform: translateY(-2px);
-        }
-
-        .speed-btn.active {
-            background-color: #FF5722;
-            box-shadow: 0 0 10px rgba(255, 87, 34, 0.5);
-        }
+        .channel-item:hover { background: #e3f2fd; }
+        .channel-item.invalid { opacity: 0.5; }
+        .channel-item.invalid .channel-name { text-decoration: line-through; }
+        .channel-status { font-size: 18px; min-width: 24px; text-align: center; }
+        .channel-info { flex: 1; min-width: 0; }
+        .channel-name { font-weight: bold; color: #1976d2; }
+        .channel-url { font-size: 12px; color: #666; word-break: break-all; margin-top: 2px; }
+        .channel-latency { font-size: 11px; color: #999; margin-top: 1px; }
 
         .status-message {
-            text-align: center;
-            padding: 15px;
-            margin: 15px auto;
-            border-radius: 6px;
-            font-weight: bold;
-            display: none;
-            max-width: 600px;
+            text-align: center; padding: 12px; margin: 10px auto;
+            border-radius: 6px; font-weight: bold; display: none; max-width: 600px;
+        }
+        .status-message.info { background: #e3f2fd; color: #1976d2; border: 1px solid #90caf9; }
+        .status-message.error { background: #ffebee; color: #c62828; border: 1px solid #ef5350; }
+        .status-message.success { background: #e8f5e9; color: #2e7d32; border: 1px solid #81c784; }
+
+        .color-section { margin-bottom: 15px; text-align: center; }
+        .color-label { font-weight: bold; margin-bottom: 8px; display: block; }
+        .color-buttons { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .color-btn {
+            width: 44px; height: 44px; border: 3px solid #555; border-radius: 6px;
+            cursor: pointer; transition: transform 0.2s; margin: 3px;
+        }
+        .color-btn:hover { transform: scale(1.1); }
+
+        .video-section { margin-bottom: 15px; text-align: center; }
+        #videoPlayer {
+            width: 100%; max-width: 100%; height: auto; background: #000;
+            border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: block; margin: 0 auto;
         }
 
-        .status-message.info {
-            background-color: #e3f2fd;
-            color: #1976d2;
-            border: 1px solid #90caf9;
+        .progress-section { margin-bottom: 15px; text-align: center; }
+        #progressBar { width: 100%; height: 8px; border-radius: 4px; cursor: pointer; }
+        .time-display { display: flex; justify-content: space-between; margin-top: 6px; font-size: 13px; font-weight: bold; }
+
+        .controls-section { margin-bottom: 15px; text-align: center; }
+        .control-group {
+            display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 15px;
+            justify-content: center; align-items: center;
+        }
+        .control-item { display: flex; align-items: center; gap: 8px; font-weight: bold; }
+        .control-btn {
+            padding: 10px 20px; font-size: 14px; font-weight: bold;
+            color: #fff; background: #2196F3; border: none; border-radius: 6px;
+            cursor: pointer; margin: 5px; transition: background 0.3s;
+        }
+        .control-btn:hover { background: #1976D2; }
+        .control-btn.pause { background: #FF9800; }
+        .control-btn.pause:hover { background: #F57C00; }
+        .control-btn.refresh { background: #9C27B0; }
+        .control-btn.refresh:hover { background: #7B1FA2; }
+
+        .jump-inputs { display: flex; gap: 6px; align-items: center; }
+        .jump-input {
+            padding: 8px; font-size: 14px; border: 2px solid #ddd;
+            border-radius: 6px; width: 55px; text-align: center; outline: none;
+        }
+        .jump-input:focus { border-color: #2196F3; }
+        .jump-label { font-weight: bold; font-size: 13px; }
+        #scaleInput {
+            padding: 8px 10px; font-size: 14px; border: 2px solid #ddd;
+            border-radius: 6px; width: 80px; text-align: center; outline: none;
         }
 
-        .status-message.error {
-            background-color: #ffebee;
-            color: #c62828;
-            border: 1px solid #ef5350;
+        .section-label { font-weight: bold; margin-bottom: 10px; display: block; text-align: center; font-size: 15px; }
+        .fast-controls, .rewind-controls, .speed-controls {
+            display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; justify-content: center;
         }
-
-        .status-message.success {
-            background-color: #e8f5e9;
-            color: #2e7d32;
-            border: 1px solid #81c784;
+        .fast-btn, .rewind-btn, .speed-btn {
+            padding: 10px 16px; font-size: 14px; font-weight: bold;
+            color: #fff; border: none; border-radius: 6px;
+            cursor: pointer; min-width: 65px; margin: 4px; transition: background 0.3s;
         }
+        .fast-btn { background: #4CAF50; }
+        .fast-btn:hover { background: #45a049; }
+        .rewind-btn { background: #f44336; }
+        .rewind-btn:hover { background: #d32f2f; }
+        .speed-btn { background: #607D8B; }
+        .speed-btn:hover { background: #455A64; }
+        .speed-btn.active { background: #FF5722; box-shadow: 0 0 10px rgba(255,87,34,0.5); }
+        .speed-display { text-align: center; font-size: 18px; font-weight: bold; margin: 8px 0; color: #FF5722; }
+        .speed-info { text-align: center; font-size: 12px; color: #999; margin-top: 4px; }
 
-        .section-label {
-            font-weight: bold;
-            margin-bottom: 12px;
-            display: block;
-            text-align: center;
-            font-size: 16px;
+        .sniff-progress {
+            display: none; margin: 8px auto; max-width: 600px;
+            padding: 10px; background: #fff3e0; border: 1px solid #ff9800;
+            border-radius: 6px; font-size: 13px; color: #e65100;
+        }
+        .sniff-progress .progress-bar-outer {
+            width: 100%; height: 6px; background: #ddd; border-radius: 3px; margin-top: 6px;
+        }
+        .sniff-progress .progress-bar-inner {
+            height: 100%; background: #ff9800; border-radius: 3px; transition: width 0.3s;
+            width: 0%;
         }
 
         @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-
-            h1 {
-                font-size: 22px;
-            }
-
-            .input-group {
-                flex-direction: column;
-            }
-
-            #urlInput {
-                max-width: 100%;
-                min-width: auto;
-            }
-
+            body { padding: 8px; }
+            h1 { font-size: 20px; }
+            .input-group { flex-direction: column; }
+            #urlInput { max-width: 100%; min-width: auto; }
             .control-btn, .fast-btn, .rewind-btn, .speed-btn {
-                font-size: 12px;
-                padding: 10px 14px;
-                min-width: 60px;
-                margin: 4px;
+                font-size: 12px; padding: 8px 12px; min-width: 55px; margin: 3px;
             }
-
-            .jump-input {
-                width: 50px;
-            }
-
-            .control-group {
-                gap: 10px;
-            }
-
-            .fast-controls, .rewind-controls, .speed-controls {
-                gap: 8px;
-            }
+            .jump-input { width: 45px; }
         }
     </style>
 </head>
-<body style="background-color: #ffffff;">
-    <div class="container">
-        <h1>🎬 IPTV / M3U8 播放器</h1>
+<body style="background-color:#fff;">
+<div class="container">
+    <h1>🎬 全能媒体播放器</h1>
 
-        <!-- URL 输入区 -->
-        <div class="input-section">
-            <div class="input-group">
-                <input type="text" id="urlInput" placeholder="输入 M3U8/IPTV/音频/视频 地址">
-                <button id="playBtn" onclick="loadVideo()">播放</button>
-            </div>
-            <div id="statusMessage" class="status-message"></div>
+    <div class="input-section">
+        <div class="input-group">
+            <input type="text" id="urlInput" placeholder="输入视频地址 / M3U列表 / 网页地址（可嗅探视频）">
+            <button class="action-btn play-btn" onclick="loadVideo()">▶ 播放</button>
+            <button class="action-btn parse-btn" onclick="parseM3U()">📋 解析列表</button>
+            <button class="action-btn sniff-btn" onclick="sniffWebpage()">🔍 嗅探网页</button>
         </div>
+        <div id="statusMessage" class="status-message"></div>
+        <div id="sniffProgress" class="sniff-progress"></div>
+        <div id="channelList" class="channel-list"></div>
+    </div>
 
-        <!-- 颜色选择区 -->
-        <div class="color-section">
-            <label class="color-label">背景颜色：</label>
-            <div class="color-buttons">
-                <button class="color-btn" style="background-color: #ffffff;" onclick="changeBgColor('#ffffff')"></button>
-                <button class="color-btn" style="background-color: #000000;" onclick="changeBgColor('#000000')"></button>
-                <button class="color-btn" style="background-color: #808080;" onclick="changeBgColor('#808080')"></button>
-                <button class="color-btn" style="background-color: #00008B;" onclick="changeBgColor('#00008B')"></button>
-                <button class="color-btn" style="background-color: #F5F5DC;" onclick="changeBgColor('#F5F5DC')"></button>
-                <button class="color-btn" style="background-color: #0000FF;" onclick="changeBgColor('#0000FF')"></button>
-                <button class="color-btn" style="background-color: #008000;" onclick="changeBgColor('#008000')"></button>
-                <button class="color-btn" style="background-color: #FF0000;" onclick="changeBgColor('#FF0000')"></button>
-            </div>
-        </div>
-
-        <!-- 视频播放区 -->
-        <div class="video-section">
-            <video id="videoPlayer" controls></video>
-        </div>
-
-        <!-- 进度条区 -->
-        <div class="progress-section">
-            <input type="range" id="progressBar" min="0" max="100" value="0" step="0.1" oninput="seekVideo()">
-            <div class="time-display">
-                <span id="currentTime">00:00:00</span>
-                <span id="duration">00:00:00</span>
-            </div>
-        </div>
-
-        <!-- 基础控制区 -->
-        <div class="controls-section">
-            <div class="control-group">
-                <button class="control-btn pause" onclick="togglePause()">⏸️ 暂停</button>
-                <button class="control-btn refresh" onclick="refreshVideo()">🔄 刷新</button>
-                
-                <!-- 跳转输入 -->
-                <div class="control-item">
-                    <span>跳转：</span>
-                    <div class="jump-inputs">
-                        <input type="number" class="jump-input" id="jumpH" placeholder="0" min="0">
-                        <span class="jump-label">h</span>
-                        <input type="number" class="jump-input" id="jumpM" placeholder="0" min="0">
-                        <span class="jump-label">min</span>
-                        <input type="number" class="jump-input" id="jumpS" placeholder="0" min="0">
-                        <span class="jump-label">s</span>
-                    </div>
-                    <button class="control-btn" onclick="jumpToTime()">跳转</button>
-                </div>
-                
-                <!-- 页面缩放 -->
-                <div class="control-item">
-                    <span>缩放：</span>
-                    <input type="number" id="scaleInput" placeholder="100" min="0" max="100" step="0.1">
-                    <span class="jump-label">%</span>
-                    <button class="control-btn" onclick="applyScale()">缩放</button>
-                </div>
-            </div>
-
-            <!-- 快进控制 -->
-            <label class="section-label">快进：</label>
-            <div class="fast-controls">
-                <button class="fast-btn" onclick="fastForward(5)">+5s</button>
-                <button class="fast-btn" onclick="fastForward(10)">+10s</button>
-                <button class="fast-btn" onclick="fastForward(15)">+15s</button>
-                <button class="fast-btn" onclick="fastForward(20)">+20s</button>
-                <button class="fast-btn" onclick="fastForward(30)">+30s</button>
-                <button class="fast-btn" onclick="fastForward(60)">+1min</button>
-                <button class="fast-btn" onclick="fastForward(300)">+5min</button>
-            </div>
-
-            <!-- 倒退控制 -->
-            <label class="section-label">倒退：</label>
-            <div class="rewind-controls">
-                <button class="rewind-btn" onclick="rewind(5)">-5s</button>
-                <button class="rewind-btn" onclick="rewind(10)">-10s</button>
-                <button class="rewind-btn" onclick="rewind(15)">-15s</button>
-                <button class="rewind-btn" onclick="rewind(20)">-20s</button>
-                <button class="rewind-btn" onclick="rewind(30)">-30s</button>
-                <button class="rewind-btn" onclick="rewind(60)">-1min</button>
-                <button class="rewind-btn" onclick="rewind(300)">-5min</button>
-            </div>
-
-            <!-- 倍速控制 -->
-            <label class="section-label">倍速：</label>
-            <div class="speed-controls">
-                <button class="speed-btn" onclick="setSpeed(0.25, this)">0.25x</button>
-                <button class="speed-btn" onclick="setSpeed(0.5, this)">0.5x</button>
-                <button class="speed-btn" onclick="setSpeed(0.75, this)">0.75x</button>
-                <button class="speed-btn active" onclick="setSpeed(1.0, this)">1.0x</button>
-                <button class="speed-btn" onclick="setSpeed(1.25, this)">1.25x</button>
-                <button class="speed-btn" onclick="setSpeed(1.5, this)">1.5x</button>
-                <button class="speed-btn" onclick="setSpeed(1.75, this)">1.75x</button>
-                <button class="speed-btn" onclick="setSpeed(2.0, this)">2.0x</button>
-                <button class="speed-btn" onclick="setSpeed(2.5, this)">2.5x</button>
-                <button class="speed-btn" onclick="setSpeed(3.0, this)">3.0x</button>
-            </div>
+    <div class="color-section">
+        <label class="color-label">背景颜色：</label>
+        <div class="color-buttons">
+            <button class="color-btn" style="background:#fff;" onclick="changeBg('#fff')"></button>
+            <button class="color-btn" style="background:#000;" onclick="changeBg('#000')"></button>
+            <button class="color-btn" style="background:#808080;" onclick="changeBg('#808080')"></button>
+            <button class="color-btn" style="background:#00008B;" onclick="changeBg('#00008B')"></button>
+            <button class="color-btn" style="background:#F5F5DC;" onclick="changeBg('#F5F5DC')"></button>
+            <button class="color-btn" style="background:#0000FF;" onclick="changeBg('#0000FF')"></button>
+            <button class="color-btn" style="background:#008000;" onclick="changeBg('#008000')"></button>
+            <button class="color-btn" style="background:#FF0000;" onclick="changeBg('#FF0000')"></button>
         </div>
     </div>
 
-    <script>
-        let video = document.getElementById('videoPlayer');
-        let progressBar = document.getElementById('progressBar');
-        let currentTimeDisplay = document.getElementById('currentTime');
-        let durationDisplay = document.getElementById('duration');
-        let hls = null;
-        let currentSpeed = 1.0;
+    <div class="video-section">
+        <video id="videoPlayer" controls playsinline preload="auto"></video>
+    </div>
 
-        // 格式化时间显示
-        function formatTime(seconds) {
-            if (isNaN(seconds) || !isFinite(seconds)) return '00:00:00';
-            const h = Math.floor(seconds / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            const s = Math.floor(seconds % 60);
-            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        }
+    <div class="progress-section">
+        <input type="range" id="progressBar" min="0" max="100" value="0" step="0.1" oninput="seekVideo()">
+        <div class="time-display">
+            <span id="currentTime">00:00:00</span>
+            <span id="duration">00:00:00</span>
+        </div>
+    </div>
 
-        // 显示状态消息
-        function showMessage(text, type = 'info') {
-            const msgDiv = document.getElementById('statusMessage');
-            msgDiv.textContent = text;
-            msgDiv.className = `status-message ${type}`;
-            msgDiv.style.display = 'block';
-            if (type === 'success') {
-                setTimeout(() => {
-                    msgDiv.style.display = 'none';
-                }, 3000);
-            }
-        }
+    <div class="controls-section">
+        <div class="control-group">
+            <button class="control-btn pause" onclick="togglePause()">⏸️ 暂停</button>
+            <button class="control-btn refresh" onclick="refreshVideo()">🔄 刷新</button>
+            <div class="control-item">
+                <span>跳转：</span>
+                <div class="jump-inputs">
+                    <input type="number" class="jump-input" id="jumpH" placeholder="0" min="0">
+                    <span class="jump-label">h</span>
+                    <input type="number" class="jump-input" id="jumpM" placeholder="0" min="0">
+                    <span class="jump-label">min</span>
+                    <input type="number" class="jump-input" id="jumpS" placeholder="0" min="0">
+                    <span class="jump-label">s</span>
+                </div>
+                <button class="control-btn" onclick="jumpToTime()">跳转</button>
+            </div>
+            <div class="control-item">
+                <span>缩放：</span>
+                <input type="number" id="scaleInput" placeholder="100" min="0" max="100" step="0.1">
+                <span class="jump-label">%</span>
+                <button class="control-btn" onclick="applyScale()">缩放</button>
+            </div>
+        </div>
 
-        // 检测媒体类型
-        function detectMediaType(url) {
-            const lowerUrl = url.toLowerCase();
-            if (lowerUrl.includes('.m3u8') || lowerUrl.includes('m3u8')) {
-                return 'hls';
-            } else if (lowerUrl.match(/\.(mp4|webm|ogg|mov)(\?|$)/i)) {
-                return 'video';
-            } else if (lowerUrl.match(/\.(mp3|wav|aac|flac|ogg)(\?|$)/i)) {
-                return 'audio';
-            } else if (lowerUrl.includes('rtmp://') || lowerUrl.includes('rtsp://')) {
-                return 'stream';
-            } else {
-                return 'unknown';
-            }
-        }
+        <label class="section-label">⏩ 快进：</label>
+        <div class="fast-controls">
+            <button class="fast-btn" onclick="ff(5)">+5s</button>
+            <button class="fast-btn" onclick="ff(10)">+10s</button>
+            <button class="fast-btn" onclick="ff(15)">+15s</button>
+            <button class="fast-btn" onclick="ff(20)">+20s</button>
+            <button class="fast-btn" onclick="ff(30)">+30s</button>
+            <button class="fast-btn" onclick="ff(60)">+1min</button>
+            <button class="fast-btn" onclick="ff(300)">+5min</button>
+        </div>
 
-        // 加载视频/音频
-        function loadVideo() {
-            const url = document.getElementById('urlInput').value.trim();
-            if (!url) {
-                showMessage('请输入媒体地址', 'error');
-                return;
-            }
+        <label class="section-label">⏪ 倒退：</label>
+        <div class="rewind-controls">
+            <button class="rewind-btn" onclick="rw(5)">-5s</button>
+            <button class="rewind-btn" onclick="rw(10)">-10s</button>
+            <button class="rewind-btn" onclick="rw(15)">-15s</button>
+            <button class="rewind-btn" onclick="rw(20)">-20s</button>
+            <button class="rewind-btn" onclick="rw(30)">-30s</button>
+            <button class="rewind-btn" onclick="rw(60)">-1min</button>
+            <button class="rewind-btn" onclick="rw(300)">-5min</button>
+        </div>
 
-            // 清理之前的 HLS 实例
-            if (hls) {
-                hls.destroy();
-                hls = null;
-            }
+        <label class="section-label">⚡ 倍速：</label>
+        <div class="speed-controls">
+            <button class="speed-btn" onclick="setSpeed(0.25,this)">0.25x</button>
+            <button class="speed-btn" onclick="setSpeed(0.5,this)">0.5x</button>
+            <button class="speed-btn" onclick="setSpeed(0.75,this)">0.75x</button>
+            <button class="speed-btn active" onclick="setSpeed(1.0,this)">1.0x</button>
+            <button class="speed-btn" onclick="setSpeed(1.25,this)">1.25x</button>
+            <button class="speed-btn" onclick="setSpeed(1.5,this)">1.5x</button>
+            <button class="speed-btn" onclick="setSpeed(1.75,this)">1.75x</button>
+            <button class="speed-btn" onclick="setSpeed(2.0,this)">2.0x</button>
+            <button class="speed-btn" onclick="setSpeed(2.5,this)">2.5x</button>
+            <button class="speed-btn" onclick="setSpeed(3.0,this)">3.0x</button>
+        </div>
+        <div class="speed-display" id="speedDisplay">当前：1.0x</div>
+        <div class="speed-info" id="speedInfo"></div>
+    </div>
+</div>
 
-            showMessage('正在加载媒体...', 'info');
+<script>
+// ===== 全局变量 =====
+const video = document.getElementById('videoPlayer');
+const progressBar = document.getElementById('progressBar');
+const currentTimeDisplay = document.getElementById('currentTime');
+const durationDisplay = document.getElementById('duration');
+let hls = null;
+let currentSpeed = 1.0;
+let speedEnforcer = null;
+let isUsingHlsJs = false;
+let parsedChannels = [];
+let channelStatuses = {};
+let showOnlyValid = false;
+let sniffedVideos = [];
 
-            const mediaType = detectMediaType(url);
+// ===== 工具函数 =====
+function formatTime(s) {
+    if (isNaN(s) || !isFinite(s)) return '00:00:00';
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = Math.floor(s % 60);
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
 
-            // 优先尝试 HLS.js
-            if (mediaType === 'hls' || url.includes('.m3u8')) {
-                if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                    // Safari 原生支持
-                    video.src = url;
-                    video.addEventListener('loadedmetadata', () => {
-                        showMessage('媒体加载成功', 'success');
-                        video.playbackRate = currentSpeed;
-                        video.play().catch(e => console.log('自动播放被阻止:', e));
-                    });
-                    video.addEventListener('error', (e) => {
-                        tryDirectPlay(url);
-                    });
-                } else if (Hls.isSupported()) {
-                    hls = new Hls({
-                        debug: false,
-                        enableWorker: true,
-                        lowLatencyMode: true,
-                        backBufferLength: 90
-                    });
-                    
-                    hls.loadSource(url);
-                    hls.attachMedia(video);
-                    
-                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                        showMessage('媒体加载成功', 'success');
-                        video.playbackRate = currentSpeed;
-                        video.play().catch(e => console.log('自动播放被阻止:', e));
-                    });
-                    
-                    hls.on(Hls.Events.ERROR, (event, data) => {
-                        console.error('HLS 错误:', data);
-                        if (data.fatal) {
-                            switch(data.type) {
-                                case Hls.ErrorTypes.NETWORK_ERROR:
-                                    showMessage('网络错误，正在重试...', 'error');
-                                    setTimeout(() => hls.startLoad(), 3000);
-                                    break;
-                                case Hls.ErrorTypes.MEDIA_ERROR:
-                                    showMessage('媒体错误，正在恢复...', 'error');
-                                    hls.recoverMediaError();
-                                    break;
-                                default:
-                                    showMessage('HLS 加载失败，尝试直接播放...', 'error');
-                                    tryDirectPlay(url);
-                                    break;
-                            }
-                        }
-                    });
-                } else {
-                    tryDirectPlay(url);
-                }
-            } else {
-                tryDirectPlay(url);
-            }
-        }
+function showMsg(text, type) {
+    type = type || 'info';
+    const el = document.getElementById('statusMessage');
+    el.textContent = text;
+    el.className = 'status-message ' + type;
+    el.style.display = 'block';
+    if (type === 'success') setTimeout(() => el.style.display = 'none', 3000);
+}
 
-        // 直接播放（适用于非 HLS 格式）
-        function tryDirectPlay(url) {
-            video.src = url;
-            video.load();
-            
-            video.addEventListener('loadedmetadata', () => {
-                showMessage('媒体加载成功', 'success');
-                video.playbackRate = currentSpeed;
-                video.play().catch(e => {
-                    console.log('自动播放被阻止:', e);
-                    showMessage('媒体已加载，请点击播放按钮', 'info');
+function updateSpeedDisplay() {
+    document.getElementById('speedDisplay').textContent = '当前：' + video.playbackRate + 'x';
+    const info = document.getElementById('speedInfo');
+    if (Math.abs(video.playbackRate - currentSpeed) > 0.01) {
+        info.textContent = '⚠️ 浏览器限制为 ' + video.playbackRate + 'x';
+        info.style.color = '#c62828';
+    } else {
+        info.textContent = isUsingHlsJs ? '✅ 使用 HLS.js 引擎' : (video.src ? '✅ 直接播放' : '待播放');
+        info.style.color = '#999';
+    }
+}
+
+function detectType(url) {
+    const u = url.toLowerCase().split('?')[0];
+    if (u.includes('.m3u8')) return 'hls';
+    if (u.includes('.m3u') && !u.includes('.m3u8')) return 'm3u';
+    if (u.match(/\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|wmv|ts)(\?|$)/i)) return 'video';
+    if (u.match(/\.(mp3|wav|aac|flac|ogg|oga|wma|m4a)(\?|$)/i)) return 'audio';
+    return 'unknown';
+}
+
+// ===================================================================
+// 倍速控制（强制 HLS.js，解决 iPad/Safari 平板倍速问题）
+// ===================================================================
+function startSpeedEnforcer() {
+    stopSpeedEnforcer();
+    let checkCount = 0;
+    speedEnforcer = setInterval(() => {
+        if (!video || video.paused) { checkCount++; if (checkCount > 50) stopSpeedEnforcer(); return; }
+        if (Math.abs(video.playbackRate - currentSpeed) > 0.01) video.playbackRate = currentSpeed;
+        checkCount++;
+        if (checkCount > 100) stopSpeedEnforcer();
+    }, 100);
+}
+function stopSpeedEnforcer() {
+    if (speedEnforcer) { clearInterval(speedEnforcer); speedEnforcer = null; }
+}
+function setSpeed(rate, btn) {
+    currentSpeed = rate;
+    try { video.playbackRate = rate; } catch(e) {}
+    if (!video.paused && !video.ended) {
+        video.pause();
+        setTimeout(() => {
+            try { video.playbackRate = rate; } catch(e) {}
+            setTimeout(() => {
+                try { video.playbackRate = rate; } catch(e) {}
+                video.play().catch(() => {});
+            }, 30);
+        }, 30);
+    } else {
+        setTimeout(() => { try { video.playbackRate = rate; } catch(e) {} }, 50);
+        setTimeout(() => { try { video.playbackRate = rate; } catch(e) {} }, 200);
+        setTimeout(() => { try { video.playbackRate = rate; } catch(e) {} }, 500);
+    }
+    startSpeedEnforcer();
+    document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    updateSpeedDisplay();
+    showMsg('目标速度：' + rate + 'x', 'success');
+}
+function applySpeedOnPlay() {
+    try { video.playbackRate = currentSpeed; } catch(e) {}
+    requestAnimationFrame(() => { try { video.playbackRate = currentSpeed; } catch(e) {} });
+    startSpeedEnforcer();
+}
+
+// ===================================================================
+// ★ 频道有效性检测
+// ===================================================================
+function checkChannel(url) {
+    return new Promise((resolve) => {
+        const startTime = Date.now();
+        const type = detectType(url);
+        if (type === 'hls' || url.toLowerCase().includes('.m3u8')) {
+            if (Hls.isSupported()) {
+                const testHls = new Hls({ debug: false, enableWorker: false });
+                let resolved = false;
+                const timeout = setTimeout(() => {
+                    if (!resolved) { resolved = true; testHls.destroy(); resolve({ status: 'fail', latency: Date.now() - startTime }); }
+                }, 8000);
+                testHls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    if (!resolved) { resolved = true; clearTimeout(timeout); testHls.destroy(); resolve({ status: 'ok', latency: Date.now() - startTime }); }
                 });
-            }, { once: true });
-            
-            video.addEventListener('error', (e) => {
-                const error = video.error;
-                if (error) {
-                    switch(error.code) {
-                        case MediaError.MEDIA_ERR_ABORTED:
-                            showMessage('播放被中止', 'error');
-                            break;
-                        case MediaError.MEDIA_ERR_NETWORK:
-                            showMessage('网络错误，请检查地址是否有效', 'error');
-                            break;
-                        case MediaError.MEDIA_ERR_DECODE:
-                            showMessage('解码错误，该格式可能不被支持', 'error');
-                            break;
-                        case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                            showMessage('不支持的媒体格式', 'error');
-                            break;
-                        default:
-                            showMessage('播放失败，请检查地址是否有效', 'error');
-                    }
+                testHls.on(Hls.Events.ERROR, (e, data) => {
+                    if (data.fatal && !resolved) { resolved = true; clearTimeout(timeout); testHls.destroy(); resolve({ status: 'fail', latency: Date.now() - startTime }); }
+                });
+                testHls.loadSource(url);
+            } else {
+                checkWithVideo(url, startTime, resolve);
+            }
+        } else {
+            checkWithVideo(url, startTime, resolve);
+        }
+    });
+}
+
+function checkWithVideo(url, startTime, resolveCallback) {
+    const testVideo = document.createElement('video');
+    testVideo.muted = true;
+    testVideo.preload = 'metadata';
+    let resolved = false;
+    const timeout = setTimeout(() => {
+        if (!resolved) {
+            resolved = true;
+            testVideo.src = '';
+            testVideo.load();
+            resolveCallback({ status: 'ok', latency: Date.now() - startTime });
+        }
+    }, 8000);
+    testVideo.addEventListener('loadedmetadata', () => {
+        if (!resolved) { resolved = true; clearTimeout(timeout); testVideo.src = ''; resolveCallback({ status: 'ok', latency: Date.now() - startTime }); }
+    }, { once: true });
+    testVideo.addEventListener('canplay', () => {
+        if (!resolved) { resolved = true; clearTimeout(timeout); testVideo.src = ''; resolveCallback({ status: 'ok', latency: Date.now() - startTime }); }
+    }, { once: true });
+    testVideo.addEventListener('error', () => {
+        if (!resolved) { resolved = true; clearTimeout(timeout); testVideo.src = ''; resolveCallback({ status: 'fail', latency: Date.now() - startTime }); }
+    }, { once: true });
+    testVideo.src = url;
+    testVideo.load();
+}
+
+async function checkAllChannels() {
+    if (parsedChannels.length === 0) { showMsg('请先解析列表', 'error'); return; }
+    showMsg(`正在检测 ${parsedChannels.length} 个频道...`, 'info');
+    channelStatuses = {};
+    parsedChannels.forEach(ch => { channelStatuses[ch.url] = { status: 'checking', latency: 0 }; });
+    renderChannelList();
+    const batchSize = 5;
+    for (let i = 0; i < parsedChannels.length; i += batchSize) {
+        const batch = parsedChannels.slice(i, i + batchSize);
+        const promises = batch.map(async (ch) => {
+            const result = await checkChannel(ch.url);
+            channelStatuses[ch.url] = result;
+            renderChannelList();
+        });
+        await Promise.all(promises);
+    }
+    const total = parsedChannels.length;
+    const valid = Object.values(channelStatuses).filter(s => s.status === 'ok').length;
+    showMsg(`检测完成：${valid} 个有效，${total - valid} 个无效（共 ${total} 个）`, 'success');
+}
+
+// ===================================================================
+// ★ 网页视频嗅探
+// ===================================================================
+
+/**
+ * CORS 代理列表（按优先级排列，自动切换）
+ */
+const CORS_PROXIES = [
+    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+];
+
+/**
+ * 通过 CORS 代理获取网页内容，自动尝试多个代理
+ */
+async function fetchViaProxy(pageUrl) {
+    let lastError = null;
+    for (let i = 0; i < CORS_PROXIES.length; i++) {
+        const proxyUrl = CORS_PROXIES[i](pageUrl);
+        try {
+            showSniffProgress(`正在通过代理 ${i + 1}/${CORS_PROXIES.length} 获取网页...`, (i / CORS_PROXIES.length) * 20);
+            const resp = await fetch(proxyUrl, { 
+                signal: AbortSignal.timeout(15000)
+            });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const text = await resp.text();
+            if (text && text.length > 100) return text;
+            throw new Error('响应内容为空');
+        } catch (e) {
+            lastError = e;
+            console.warn(`代理 ${i + 1} 失败:`, e.message);
+        }
+    }
+    throw lastError || new Error('所有代理均失败');
+}
+
+/**
+ * 显示嗅探进度
+ */
+function showSniffProgress(text, percent) {
+    const el = document.getElementById('sniffProgress');
+    el.style.display = 'block';
+    el.innerHTML = `<div>${text}</div><div class="progress-bar-outer"><div class="progress-bar-inner" style="width:${percent}%"></div></div>`;
+}
+
+function hideSniffProgress() {
+    document.getElementById('sniffProgress').style.display = 'none';
+}
+
+/**
+ * 从 HTML 文本中提取所有视频相关 URL
+ */
+function extractVideoURLs(html, baseURL) {
+    const found = new Map(); // url -> {name, type}
+    const baseOrigin = (() => { try { return new URL(baseURL).origin; } catch { return ''; } })();
+    const basePath = (() => { try { return baseURL.substring(0, baseURL.lastIndexOf('/') + 1); } catch { return ''; } })();
+
+    function addURL(url, name, type) {
+        if (!url || typeof url !== 'string') return;
+        url = url.trim();
+        if (!url || url.length < 5) return;
+        // 跳过数据URI、javascript:、过短的
+        if (url.startsWith('data:') || url.startsWith('javascript:') || url.startsWith('blob:')) return;
+        // 补全相对路径
+        if (url.startsWith('//')) url = 'https:' + url;
+        else if (url.startsWith('/')) url = baseOrigin + url;
+        else if (!url.match(/^https?:\/\//i)) url = basePath + url;
+        // 去重
+        if (found.has(url)) return;
+        found.set(url, { name: name || url.split('/').pop().split('?')[0] || '视频', type: type || guessType(url) });
+    }
+
+    function guessType(url) {
+        const u = url.toLowerCase().split('?')[0];
+        if (u.includes('.m3u8')) return 'HLS';
+        if (u.match(/\.mp4(\?|$)/)) return 'MP4';
+        if (u.match(/\.webm(\?|$)/)) return 'WebM';
+        if (u.match(/\.flv(\?|$)/)) return 'FLV';
+        if (u.match(/\.ts(\?|$)/)) return 'TS';
+        if (u.match(/\.m3u8/)) return 'HLS';
+        if (u.match(/\.(mp3|aac|m4a|wav|flac|ogg)(\?|$)/)) return '音频';
+        return '视频流';
+    }
+
+    // 1. 解析 HTML DOM 提取 video/source/iframe/embed 标签
+    try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        // <video src="...">
+        doc.querySelectorAll('video').forEach(v => {
+            const src = v.getAttribute('src');
+            if (src) addURL(src, v.getAttribute('title') || v.getAttribute('alt') || '视频');
+            // <video><source src="..."></video>
+            v.querySelectorAll('source').forEach(s => {
+                const ssrc = s.getAttribute('src');
+                if (ssrc) addURL(ssrc, s.getAttribute('title') || '视频源');
+            });
+        });
+
+        // 独立的 <source> 标签
+        doc.querySelectorAll('source[src]').forEach(s => {
+            addURL(s.getAttribute('src'), '视频源');
+        });
+
+        // <iframe> 可能嵌入播放器的
+        doc.querySelectorAll('iframe[src]').forEach(f => {
+            const src = f.getAttribute('src');
+            if (src && (src.includes('player') || src.includes('video') || src.includes('embed') || src.includes('play'))) {
+                addURL(src, '嵌入式播放器');
+            }
+        });
+
+        // <embed> 和 <object>
+        doc.querySelectorAll('embed[src], object[data]').forEach(el => {
+            const src = el.getAttribute('src') || el.getAttribute('data');
+            if (src) addURL(src, '嵌入媒体');
+        });
+
+        // <a> 标签直接链接到视频文件
+        doc.querySelectorAll('a[href]').forEach(a => {
+            const href = a.getAttribute('href');
+            if (href && href.match(/\.(mp4|m3u8|webm|flv|ts|mp3|m4a|aac|flac)(\?|$)/i)) {
+                addURL(href, a.textContent.trim() || '视频链接');
+            }
+        });
+    } catch (e) {
+        console.warn('DOM解析失败:', e);
+    }
+
+    // 2. 正则提取视频 URL（从整个HTML文本中搜索）
+    // M3U8 地址
+    const m3u8Regex = /https?:\/\/[^\s"'<>\]\)]+\.m3u8[^\s"'<>\]\)]*/gi;
+    let m;
+    while ((m = m3u8Regex.exec(html)) !== null) {
+        addURL(m[0].replace(/\\u002F/g, '/').replace(/\\\//g, '/'), '', 'HLS');
+    }
+
+    // MP4/WebM/FLV 地址
+    const videoRegex = /https?:\/\/[^\s"'<>\]\)]+\.(?:mp4|webm|flv|ts|ogv|mov|mkv)(?:\?[^\s"'<>\]\)]*)?/gi;
+    while ((m = videoRegex.exec(html)) !== null) {
+        addURL(m[0].replace(/\\u002F/g, '/').replace(/\\\//g, '/'), '', guessType(m[0]));
+    }
+
+    // 音频地址
+    const audioRegex = /https?:\/\/[^\s"'<>\]\)]+\.(?:mp3|aac|m4a|wav|flac|oga|wma)(?:\?[^\s"'<>\]\)]*)?/gi;
+    while ((m = audioRegex.exec(html)) !== null) {
+        addURL(m[0].replace(/\\u002F/g, '/').replace(/\\\//g, '/'), '', '音频');
+    }
+
+    // 3. 从 JavaScript 中提取（常见的变量赋值模式）
+    // url: "xxx", src: "xxx", videoUrl: "xxx", playUrl: "xxx", video_url: "xxx"
+    const jsPatterns = [
+        /(?:video_?url|play_?url|playurl|videourl|src|url|mp4url|m3u8url|file|source|stream|durl|videoSrc|playLink)\s*[:=]\s*["'](https?:\/\/[^"']+\.(?:m3u8|mp4|webm|flv|ts|m3u)[^"']*)["']/gi,
+        /(?:video_?url|play_?url|playurl|videourl|src|url|mp4url|m3u8url|file|source|stream|durl|videoSrc|playLink)\s*[:=]\s*["'](\/\/[^"']+\.(?:m3u8|mp4|webm|flv|ts)[^"']*)["']/gi,
+        /["'](https?:\/\/[^"']*\.(?:m3u8|mp4|webm|flv)[^"']*)["']/gi,
+    ];
+    jsPatterns.forEach(regex => {
+        while ((m = regex.exec(html)) !== null) {
+            let url = m[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&');
+            addURL(url, '', guessType(url));
+        }
+    });
+
+    // 4. 特殊网站处理
+    // Bilibili: 从 __playinfo__ 提取
+    const biliMatch = html.match(/__playinfo__\s*=\s*({.*?})\s*<\/script>/s);
+    if (biliMatch) {
+        try {
+            const biliData = JSON.parse(biliMatch[1]);
+            if (biliData.data && biliData.data.dash && biliData.data.dash.video) {
+                biliData.data.dash.video.forEach(v => {
+                    if (v.baseUrl) addURL(v.baseUrl, `B站视频 ${v.width||''}x${v.height||''} ${v.codecs||''}`, 'B站视频');
+                    if (v.base_url && v.base_url !== v.baseUrl) addURL(v.base_url, `B站视频(alt)`, 'B站视频');
+                });
+                if (biliData.data.dash.audio) {
+                    biliData.data.dash.audio.forEach(a => {
+                        if (a.baseUrl) addURL(a.baseUrl, `B站音频 ${a.codecs||''}`, 'B站音频');
+                    });
                 }
-            }, { once: true });
-        }
-
-        // 更改背景颜色
-        function changeBgColor(color) {
-            document.body.style.backgroundColor = color;
-            const brightness = getBrightness(color);
-            document.body.style.color = brightness > 125 ? '#333' : '#fff';
-        }
-
-        // 计算颜色亮度
-        function getBrightness(hexColor) {
-            const rgb = parseInt(hexColor.slice(1), 16);
-            const r = (rgb >> 16) & 0xff;
-            const g = (rgb >>  8) & 0xff;
-            const b = (rgb >>  0) & 0xff;
-            return (r * 299 + g * 587 + b * 114) / 1000;
-        }
-
-        // 切换暂停/播放
-        function togglePause() {
-            const btn = event.target;
-            if (video.paused) {
-                video.play();
-                btn.innerHTML = '⏸️ 暂停';
-            } else {
-                video.pause();
-                btn.innerHTML = '▶️ 播放';
             }
-        }
-
-        // 刷新视频
-        function refreshVideo() {
-            const url = document.getElementById('urlInput').value.trim();
-            if (url) {
-                loadVideo();
-            } else {
-                video.load();
+            // 旧版 durl 格式
+            if (biliData.data && biliData.data.durl) {
+                biliData.data.durl.forEach((d, i) => {
+                    if (d.url) addURL(d.url, `B站视频 段${i+1}`, 'B站视频');
+                });
             }
+        } catch (e) { console.warn('B站数据解析失败:', e); }
+    }
+
+    // 5. 提取可能的 HLS 流地址（不一定以 .m3u8 结尾的）
+    const hlsPatterns = [
+        /["'](https?:\/\/[^"']*(?:playlist|master|index|live|stream|manifest)[^"']*(?:\.m3u8|\/m3u8|format=m3u8)[^"']*)["']/gi,
+        /["'](https?:\/\/[^"']*\/hls\/[^"']*)["']/gi,
+    ];
+    hlsPatterns.forEach(regex => {
+        while ((m = regex.exec(html)) !== null) {
+            addURL(m[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/'), 'HLS流', 'HLS');
+        }
+    });
+
+    return Array.from(found.entries()).map(([url, info]) => ({
+        url: url,
+        name: info.name,
+        type: info.type
+    }));
+}
+
+/**
+ * 主嗅探函数
+ */
+async function sniffWebpage() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url) { showMsg('请输入网页地址', 'error'); return; }
+
+    // 如果输入的直接是视频地址，直接播放
+    const type = detectType(url);
+    if (type === 'hls' || type === 'video' || type === 'audio') {
+        showMsg('这是直接可播放的视频地址，正在播放...', 'info');
+        loadVideo(url);
+        return;
+    }
+
+    showMsg('🔍 开始嗅探网页中的视频资源...', 'info');
+    showSniffProgress('准备中...', 0);
+
+    try {
+        // Step 1: 获取网页内容
+        showSniffProgress('正在获取网页内容...', 10);
+        const html = await fetchViaProxy(url);
+        showSniffProgress('网页获取成功，正在分析视频资源...', 40);
+
+        // Step 2: 提取视频 URL
+        await new Promise(r => setTimeout(r, 300)); // 让 UI 更新
+        const videos = extractVideoURLs(html, url);
+        showSniffProgress(`发现 ${videos.length} 个视频资源，正在整理...`, 70);
+
+        if (videos.length === 0) {
+            hideSniffProgress();
+            showMsg('未在网页中找到可识别的视频地址。该网页可能使用加密/DRM保护，或视频通过复杂JS动态加载。', 'error');
+            return;
         }
 
-        // 跳转到指定时间
-        function jumpToTime() {
-            const h = parseInt(document.getElementById('jumpH').value) || 0;
-            const m = parseInt(document.getElementById('jumpM').value) || 0;
-            const s = parseInt(document.getElementById('jumpS').value) || 0;
-            
-            const totalSeconds = h * 3600 + m * 60 + s;
+        // Step 3: 去重和排序
+        // 按类型排序：HLS > MP4 > 其他
+        const typeOrder = { 'HLS': 0, 'MP4': 1, 'WebM': 2, 'FLV': 3, 'TS': 4, '音频': 5, 'B站视频': 6, 'B站音频': 7 };
+        videos.sort((a, b) => (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99));
 
-            if (video.duration && !isNaN(video.duration)) {
-                if (totalSeconds >= 0 && totalSeconds <= video.duration) {
-                    video.currentTime = totalSeconds;
-                    showMessage(`已跳转到 ${formatTime(totalSeconds)}`, 'success');
-                } else if (totalSeconds > video.duration) {
-                    showMessage('跳转时间超出媒体范围', 'error');
-                } else {
-                    showMessage('请先加载媒体', 'error');
-                }
-            } else {
-                showMessage('请先加载媒体', 'error');
-            }
-        }
-
-        // 应用页面缩放
-        function applyScale() {
-            const scaleValue = parseFloat(document.getElementById('scaleInput').value);
-            if (isNaN(scaleValue) || scaleValue < 0 || scaleValue > 100) {
-                showMessage('请输入 0-100 之间的数值', 'error');
-                return;
-            }
-
-            const scale = scaleValue / 100;
-            const videoSection = document.querySelector('.video-section');
-            videoSection.style.transform = `scale(${scale})`;
-            videoSection.style.transformOrigin = 'center top';
-            
-            const originalHeight = videoSection.offsetHeight;
-            const scaledHeight = originalHeight * scale;
-            videoSection.style.marginBottom = `-${originalHeight - scaledHeight}px`;
-            
-            showMessage(`页面缩放至 ${scaleValue}%`, 'success');
-        }
-
-        // 快进
-        function fastForward(seconds) {
-            if (video.duration && !isNaN(video.duration)) {
-                video.currentTime = Math.min(video.currentTime + seconds, video.duration);
-            } else {
-                video.currentTime += seconds;
-            }
-        }
-
-        // 倒退
-        function rewind(seconds) {
-            video.currentTime = Math.max(video.currentTime - seconds, 0);
-        }
-
-        // 设置播放速度 - 修复版本
-        function setSpeed(speed, btn) {
-            // 保存当前速度
-            currentSpeed = speed;
-            
-            // 立即设置视频播放速度
-            if (video) {
-                video.playbackRate = speed;
-                
-                // 强制刷新，确保在某些浏览器上生效
-                setTimeout(() => {
-                    video.playbackRate = speed;
-                }, 10);
-            }
-            
-            // 更新按钮状态
-            document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            showMessage(`播放速度：${speed}x`, 'success');
-        }
-
-        // 拖动进度条
-        function seekVideo() {
-            if (video.duration && !isNaN(video.duration)) {
-                const time = video.duration * (progressBar.value / 100);
-                video.currentTime = time;
-            }
-        }
-
-        // 更新进度条
-        video.addEventListener('timeupdate', () => {
-            if (video.duration && !isNaN(video.duration)) {
-                const progress = (video.currentTime / video.duration) * 100;
-                progressBar.value = progress;
-                currentTimeDisplay.textContent = formatTime(video.currentTime);
-                durationDisplay.textContent = formatTime(video.duration);
-            }
+        // 去重（相同URL）
+        const seen = new Set();
+        const uniqueVideos = videos.filter(v => {
+            if (seen.has(v.url)) return false;
+            seen.add(v.url);
+            return true;
         });
 
-        // 视频加载元数据
-        video.addEventListener('loadedmetadata', () => {
-            if (video.duration && !isNaN(video.duration)) {
-                durationDisplay.textContent = formatTime(video.duration);
-                // 确保播放速度被应用
-                video.playbackRate = currentSpeed;
+        sniffedVideos = uniqueVideos;
+
+        // Step 4: 转换为频道格式显示
+        parsedChannels = uniqueVideos.map((v, i) => ({
+            name: `[${v.type}] ${v.name}`,
+            url: v.url,
+            logo: ''
+        }));
+        channelStatuses = {};
+
+        showSniffProgress(`完成！发现 ${uniqueVideos.length} 个视频`, 100);
+        setTimeout(() => hideSniffProgress(), 2000);
+
+        showMsg(`🎉 嗅探完成！发现 ${uniqueVideos.length} 个视频资源，点击列表播放`, 'success');
+        renderChannelList();
+
+        // 自动检测有效性
+        setTimeout(() => checkAllChannels(), 800);
+
+    } catch (err) {
+        hideSniffProgress();
+        showMsg('嗅探失败: ' + err.message + '。可能原因：网页不可访问、CORS限制、或所有代理超时。', 'error');
+    }
+}
+
+// ===================================================================
+// 频道列表渲染
+// ===================================================================
+function parseM3U() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url) { showMsg('请输入 M3U 文件地址', 'error'); return; }
+    parseM3UFromURL(url);
+}
+
+function parseM3UFromURL(url) {
+    showMsg('正在解析 M3U 列表...', 'info');
+    fetch(url)
+        .then(r => r.text())
+        .then(text => parseM3UContent(text, url))
+        .catch(err => {
+            showMsg('M3U 解析失败: ' + err.message, 'error');
+            loadDirect(url);
+        });
+}
+
+function parseM3UContent(text, baseURL) {
+    const lines = text.split(/\r?\n/);
+    const channels = [];
+    let currentName = '', currentLogo = '';
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('#EXTINF:')) {
+            const nameMatch = line.match(/,(.+)$/);
+            currentName = nameMatch ? nameMatch[1].trim() : '未知频道';
+            const logoMatch = line.match(/tvg-logo="([^"]*)"/i);
+            currentLogo = logoMatch ? logoMatch[1] : '';
+        } else if (line && !line.startsWith('#')) {
+            let streamURL = line;
+            if (!streamURL.match(/^https?:\/\//i) && baseURL) {
+                streamURL = baseURL.substring(0, baseURL.lastIndexOf('/') + 1) + streamURL;
+            }
+            channels.push({ name: currentName || streamURL, url: streamURL, logo: currentLogo });
+            currentName = ''; currentLogo = '';
+        }
+    }
+    if (channels.length === 0) {
+        showMsg('未找到频道列表，尝试直接播放...', 'info');
+        loadDirect(baseURL || document.getElementById('urlInput').value.trim());
+        return;
+    }
+    parsedChannels = channels;
+    channelStatuses = {};
+    showMsg(`已解析 ${channels.length} 个频道`, 'success');
+    renderChannelList();
+    setTimeout(() => checkAllChannels(), 500);
+}
+
+function renderChannelList() {
+    const listEl = document.getElementById('channelList');
+    const total = parsedChannels.length;
+    const checked = Object.keys(channelStatuses).length;
+    const valid = Object.values(channelStatuses).filter(s => s.status === 'ok').length;
+    const invalid = checked - valid;
+
+    let html = `<div class="channel-toolbar">
+        <span class="channel-stats">
+            共 ${total} 个 | ✅ ${valid} 有效 | ❌ ${invalid} 无效 | ⏳ ${total - checked} 待检测
+        </span>
+        <div class="channel-actions">
+            <button class="action-btn check-btn" style="padding:6px 12px;font-size:12px;" onclick="checkAllChannels()">🔍 重新检测</button>
+            <button class="action-btn filter-btn ${showOnlyValid ? 'active' : ''}" style="padding:6px 12px;font-size:12px;" onclick="toggleFilter()">
+                ${showOnlyValid ? '显示全部' : '仅显示有效'}
+            </button>
+        </div>
+    </div>`;
+
+    parsedChannels.forEach((ch, idx) => {
+        const status = channelStatuses[ch.url];
+        let statusIcon = '⏳';
+        let latencyText = '';
+        let itemClass = 'channel-item';
+
+        if (status) {
+            if (status.status === 'ok') { statusIcon = '✅'; latencyText = status.latency + 'ms'; }
+            else if (status.status === 'fail') { statusIcon = '❌'; itemClass += ' invalid'; }
+            else if (status.status === 'checking') { statusIcon = '🔄'; }
+        }
+
+        if (showOnlyValid && status && status.status !== 'ok') return;
+
+        html += `<div class="${itemClass}" onclick="selectChannel('${encodeURIComponent(ch.url)}')">
+            <span class="channel-status">${statusIcon}</span>
+            <div class="channel-info">
+                <div class="channel-name">${idx + 1}. ${ch.name}</div>
+                <div class="channel-url">${ch.url}</div>
+                ${latencyText ? '<div class="channel-latency">延迟: ' + latencyText + '</div>' : ''}
+            </div>
+        </div>`;
+    });
+
+    listEl.innerHTML = html;
+    listEl.style.display = 'block';
+}
+
+function selectChannel(encodedUrl) {
+    const url = decodeURIComponent(encodedUrl);
+    document.getElementById('urlInput').value = url;
+    document.getElementById('channelList').style.display = 'none';
+    loadVideo(url);
+}
+
+function toggleFilter() {
+    showOnlyValid = !showOnlyValid;
+    renderChannelList();
+}
+
+// ===================================================================
+// 媒体加载
+// ===================================================================
+function loadVideo(url) {
+    url = url || document.getElementById('urlInput').value.trim();
+    if (!url) { showMsg('请输入媒体地址', 'error'); return; }
+    if (hls) { hls.destroy(); hls = null; }
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    isUsingHlsJs = false;
+
+    const type = detectType(url);
+    showMsg('正在加载...', 'info');
+
+    if (type === 'm3u') { parseM3UFromURL(url); return; }
+    if (type === 'hls' || url.toLowerCase().includes('.m3u8')) { loadHLSViaHlsJs(url); return; }
+    loadDirect(url);
+}
+
+function loadHLSViaHlsJs(url) {
+    if (Hls.isSupported()) {
+        isUsingHlsJs = true;
+        hls = new Hls({ debug: false, enableWorker: true, lowLatencyMode: false, backBufferLength: 90, maxBufferLength: 30, maxMaxBufferLength: 60 });
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            showMsg('HLS 流加载成功 (HLS.js)', 'success');
+            applySpeedOnPlay();
+            video.play().catch(() => {});
+        });
+        hls.on(Hls.Events.ERROR, (e, data) => {
+            if (!data.fatal) return;
+            switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                    showMsg('网络错误，3秒后重试...', 'error');
+                    setTimeout(() => { if (hls) hls.startLoad(); }, 3000);
+                    break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                    showMsg('媒体错误，正在修复...', 'error');
+                    if (hls) hls.recoverMediaError();
+                    break;
+                default:
+                    showMsg('HLS.js 失败，切换到原生播放', 'error');
+                    loadDirect(url);
+                    break;
             }
         });
+        hls.loadSource(url);
+        hls.attachMedia(video);
+    } else {
+        showMsg('⚠️ HLS.js 不可用，使用原生播放', 'error');
+        video.src = url;
+        video.load();
+        video.play().catch(() => {});
+    }
+}
 
-        // 视频播放时更新按钮
-        video.addEventListener('play', () => {
-            const btn = document.querySelector('.control-btn.pause');
-            btn.innerHTML = '⏸️ 暂停';
-            // 确保播放速度正确
-            video.playbackRate = currentSpeed;
-        });
+function loadDirect(url) {
+    isUsingHlsJs = false;
+    video.src = url;
+    video.load();
+    video.play().catch(() => { showMsg('已加载，请点击播放按钮', 'info'); });
+}
 
-        video.addEventListener('pause', () => {
-            const btn = document.querySelector('.control-btn.pause');
-            btn.innerHTML = '▶️ 播放';
-        });
+// ===== 其他功能 =====
+function changeBg(color) {
+    document.body.style.backgroundColor = color;
+    const r = parseInt(color.slice(1,3),16), g = parseInt(color.slice(3,5),16), b = parseInt(color.slice(5,7),16);
+    document.body.style.color = (r*299+g*587+b*114)/1000 > 125 ? '#333' : '#fff';
+}
+function togglePause() {
+    const btn = event.target.closest('.control-btn.pause');
+    if (video.paused) { video.play(); btn.innerHTML = '⏸️ 暂停'; }
+    else { video.pause(); btn.innerHTML = '▶️ 播放'; }
+}
+function refreshVideo() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (url) loadVideo(url); else video.load();
+}
+function jumpToTime() {
+    const h = parseInt(document.getElementById('jumpH').value) || 0;
+    const m = parseInt(document.getElementById('jumpM').value) || 0;
+    const s = parseInt(document.getElementById('jumpS').value) || 0;
+    const total = h * 3600 + m * 60 + s;
+    if (!video.duration || isNaN(video.duration)) { showMsg('请先加载媒体', 'error'); return; }
+    if (total > video.duration) { showMsg('超出媒体范围', 'error'); return; }
+    video.currentTime = total;
+    showMsg('已跳转到 ' + formatTime(total), 'success');
+}
+function applyScale() {
+    const v = parseFloat(document.getElementById('scaleInput').value);
+    if (isNaN(v) || v < 0 || v > 100) { showMsg('请输入 0-100', 'error'); return; }
+    const scale = v / 100;
+    const vs = document.querySelector('.video-section');
+    vs.style.transform = `scale(${scale})`;
+    vs.style.transformOrigin = 'center top';
+    const origH = vs.offsetHeight;
+    vs.style.marginBottom = `-${origH - origH * scale}px`;
+    showMsg(`缩放至 ${v}%`, 'success');
+}
+function ff(sec) { video.currentTime = video.duration ? Math.min(video.currentTime + sec, video.duration) : video.currentTime + sec; }
+function rw(sec) { video.currentTime = Math.max(video.currentTime - sec, 0); }
+function seekVideo() {
+    if (video.duration && !isNaN(video.duration)) video.currentTime = video.duration * (progressBar.value / 100);
+}
 
-        // 回车键触发播放
-        document.getElementById('urlInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                loadVideo();
-            }
-        });
+// ===== 事件监听 =====
+video.addEventListener('timeupdate', () => {
+    if (video.duration && !isNaN(video.duration)) {
+        progressBar.value = (video.currentTime / video.duration) * 100;
+        currentTimeDisplay.textContent = formatTime(video.currentTime);
+        durationDisplay.textContent = formatTime(video.duration);
+    } else {
+        currentTimeDisplay.textContent = formatTime(video.currentTime);
+        durationDisplay.textContent = 'LIVE';
+    }
+});
+video.addEventListener('playing', () => {
+    document.querySelector('.control-btn.pause').innerHTML = '⏸️ 暂停';
+    applySpeedOnPlay(); updateSpeedDisplay();
+});
+video.addEventListener('canplay', () => { applySpeedOnPlay(); });
+video.addEventListener('loadedmetadata', () => {
+    if (video.duration && !isNaN(video.duration)) durationDisplay.textContent = formatTime(video.duration);
+    applySpeedOnPlay();
+});
+video.addEventListener('ratechange', () => { updateSpeedDisplay(); });
+video.addEventListener('play', () => {
+    document.querySelector('.control-btn.pause').innerHTML = '⏸️ 暂停';
+    applySpeedOnPlay();
+});
+video.addEventListener('pause', () => {
+    document.querySelector('.control-btn.pause').innerHTML = '▶️ 播放';
+});
+video.addEventListener('error', () => {
+    const err = video.error;
+    if (err) {
+        const msgs = { 1:'播放被中止', 2:'网络错误', 3:'解码错误', 4:'不支持的格式' };
+        showMsg(msgs[err.code] || '播放失败', 'error');
+    }
+});
 
-        // 回车键触发跳转
-        document.getElementById('jumpH').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') jumpToTime();
-        });
-        document.getElementById('jumpM').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') jumpToTime();
-        });
-        document.getElementById('jumpS').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') jumpToTime();
-        });
+document.getElementById('urlInput').addEventListener('keypress', e => { if (e.key === 'Enter') loadVideo(); });
+document.getElementById('jumpH').addEventListener('keypress', e => { if (e.key === 'Enter') jumpToTime(); });
+document.getElementById('jumpM').addEventListener('keypress', e => { if (e.key === 'Enter') jumpToTime(); });
+document.getElementById('jumpS').addEventListener('keypress', e => { if (e.key === 'Enter') jumpToTime(); });
+document.getElementById('scaleInput').addEventListener('keypress', e => { if (e.key === 'Enter') applyScale(); });
 
-        // 回车键触发缩放
-        document.getElementById('scaleInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') applyScale();
-        });
-
-        // 页面加载完成后初始化
-        window.addEventListener('load', () => {
-            // 确保初始速度正确
-            if (video) {
-                video.playbackRate = currentSpeed;
-            }
-        });
-    </script>
+window.addEventListener('load', () => {
+    video.playbackRate = currentSpeed;
+    const info = Hls.isSupported() ? 'HLS.js ✅' : (video.canPlayType('application/vnd.apple.mpegurl') ? '原生 HLS ⚠️' : '⚠️');
+    document.getElementById('speedInfo').textContent = '播放引擎：' + info;
+});
+</script>
 </body>
 </html>
